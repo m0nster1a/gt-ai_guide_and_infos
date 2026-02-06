@@ -2,37 +2,80 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Game Loot Table</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loot Table</title>
     <style>
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #333; padding: 5px; }
+        body { font-family: sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
-    <h1>Loot Table</h1>
-    <div id="table-container">Loading...</div>
 
-    <!-- Load SheetJS library -->
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>[[1](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQFVh1plKuYQHuH-7JIunZ0HsO1mwUAdXALv2-E84w-qimBUib_gKyYu8SoQIIcRfWueJGGylCKDl-G-83KeVCTjZ98ZGJmtnv-VF6cQ8dFm0p09QslTiaNUOj7G9p9BkYXEnkrze5dIvx-mIXvR7pQuJEeeZVcWAIe3UQfKat4rmx_hbs-6jUEn)]
-    
+    <h1>Game Loot Table</h1>
+    <div id="status">Loading data...</div>
+    <table id="loot-table">
+        <thead>
+            <tr id="table-head"></tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+
     <script>
-        (async() => {
-            const url = "loot.csv"; // Path to your file
-            const data = await (await fetch(url)).arrayBuffer();
-            
-            // Parse the Excel file
-            const workbook = XLSX.read(data);[[1](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQFVh1plKuYQHuH-7JIunZ0HsO1mwUAdXALv2-E84w-qimBUib_gKyYu8SoQIIcRfWueJGGylCKDl-G-83KeVCTjZ98ZGJmtnv-VF6cQ8dFm0p09QslTiaNUOj7G9p9BkYXEnkrze5dIvx-mIXvR7pQuJEeeZVcWAIe3UQfKat4rmx_hbs-6jUEn)]
-            
-            // Get the first sheet
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];[[1](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQFVh1plKuYQHuH-7JIunZ0HsO1mwUAdXALv2-E84w-qimBUib_gKyYu8SoQIIcRfWueJGGylCKDl-G-83KeVCTjZ98ZGJmtnv-VF6cQ8dFm0p09QslTiaNUOj7G9p9BkYXEnkrze5dIvx-mIXvR7pQuJEeeZVcWAIe3UQfKat4rmx_hbs-6jUEn)]
-            
-            // Convert to HTML table
-            const html = XLSX.utils.sheet_to_html(worksheet);[[1](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQFVh1plKuYQHuH-7JIunZ0HsO1mwUAdXALv2-E84w-qimBUib_gKyYu8SoQIIcRfWueJGGylCKDl-G-83KeVCTjZ98ZGJmtnv-VF6cQ8dFm0p09QslTiaNUOj7G9p9BkYXEnkrze5dIvx-mIXvR7pQuJEeeZVcWAIe3UQfKat4rmx_hbs-6jUEn)]
-            
-            // Display it
-            document.getElementById("table-container").innerHTML = html;
-        })();
+        // 1. Enter the exact name of your file here
+        const csvFile = 'loot.csv'; 
+
+        fetch(csvFile)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Could not find file: " + csvFile);
+                }
+                return response.text();
+            })
+            .then(text => {
+                // 2. Split the text into rows
+                const rows = text.split('\n');
+                
+                // 3. Get the Headers (first row)
+                const headers = rows[0].split(',');
+                const thead = document.getElementById('table-head');
+                
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header.trim();
+                    thead.appendChild(th);
+                });
+
+                // 4. Get the Data (rest of the rows)
+                const tbody = document.getElementById('table-body');
+                
+                for (let i = 1; i < rows.length; i++) {
+                    // Skip empty rows (often happens at end of file)
+                    if (rows[i].trim() === "") continue;
+
+                    const rowData = rows[i].split(',');
+                    const tr = document.createElement('tr');
+                    
+                    rowData.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell.trim();
+                        tr.appendChild(td);
+                    });
+                    
+                    tbody.appendChild(tr);
+                }
+                
+                // Remove loading text
+                document.getElementById('status').style.display = 'none';
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById('status').textContent = "Error: " + error.message;
+                document.getElementById('status').style.color = "red";
+            });
     </script>
+
 </body>
 </html>
