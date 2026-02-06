@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Data Viewer</title>
+    <title>Crate Contents - Excel Viewer</title>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
@@ -17,8 +17,8 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: #e0e0e0;
             padding: 20px;
             min-height: 100vh;
@@ -29,54 +29,80 @@
             margin: 0 auto;
         }
         
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+        
         h1 {
             color: #ffffff;
-            margin-bottom: 30px;
-            font-size: clamp(24px, 5vw, 36px);
-            text-align: center;
+            margin-bottom: 10px;
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            color: #b0b0b0;
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: 300;
         }
         
         .table-wrapper {
-            background: #2a2a2a;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: rgba(42, 42, 42, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
             overflow-x: auto;
         }
         
         /* DataTables dark theme overrides */
         table.dataTable {
             width: 100% !important;
-            background: #2a2a2a;
+            background: transparent;
             color: #e0e0e0;
             border-collapse: collapse;
         }
         
         table.dataTable thead th {
-            background: #333333;
+            background: linear-gradient(135deg, #3a3a4a 0%, #2d2d3d 100%);
             color: #ffffff;
-            border-bottom: 2px solid #444444;
-            padding: 12px;
+            border-bottom: 3px solid #5a9fd4;
+            padding: 16px 12px;
             font-weight: 600;
             text-align: left;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
         
         table.dataTable tbody td {
-            padding: 12px;
+            padding: 14px 12px;
             border-bottom: 1px solid #3a3a3a;
+            font-size: 15px;
         }
         
         table.dataTable tbody tr {
-            background: #2a2a2a;
+            background: rgba(42, 42, 42, 0.6);
+            transition: all 0.2s ease;
         }
         
         table.dataTable tbody tr:hover {
-            background: #353535 !important;
+            background: rgba(53, 53, 53, 0.8) !important;
+            transform: scale(1.01);
         }
         
-        /* Preserve Excel cell colors */
-        table.dataTable tbody td[style] {
-            /* Excel colors will be applied inline */
+        /* Colored cells with better styling */
+        table.dataTable tbody td .colored-cell {
+            padding: 6px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         /* DataTables controls */
@@ -84,82 +110,137 @@
             color: #e0e0e0;
         }
         
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 20px;
+        }
+        
+        .dataTables_filter {
+            float: right;
+        }
+        
+        .dataTables_filter label {
+            font-weight: 500;
+            color: #b0b0b0;
+        }
+        
         .dataTables_filter input {
             background: #333333;
-            border: 1px solid #444444;
+            border: 2px solid #444444;
             color: #e0e0e0;
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin-left: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+            font-size: 15px;
         }
         
         .dataTables_filter input:focus {
             outline: none;
             border-color: #5a9fd4;
+            box-shadow: 0 0 0 3px rgba(90, 159, 212, 0.2);
+        }
+        
+        .dataTables_length label {
+            font-weight: 500;
+            color: #b0b0b0;
         }
         
         .dataTables_length select {
             background: #333333;
-            border: 1px solid #444444;
+            border: 2px solid #444444;
             color: #e0e0e0;
-            padding: 6px 10px;
-            border-radius: 6px;
-            margin: 0 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin: 0 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .dataTables_length select:focus {
+            outline: none;
+            border-color: #5a9fd4;
         }
         
         .dataTables_info {
             color: #b0b0b0;
-            padding-top: 12px;
+            padding-top: 20px;
+            font-size: 14px;
         }
         
         .dataTables_paginate {
-            padding-top: 12px;
+            padding-top: 20px;
+            float: right;
         }
         
         .dataTables_paginate .paginate_button {
             background: #333333;
             color: #e0e0e0 !important;
-            border: 1px solid #444444;
-            padding: 6px 12px;
-            margin: 0 2px;
-            border-radius: 6px;
+            border: 2px solid #444444;
+            padding: 8px 16px;
+            margin: 0 4px;
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
         
         .dataTables_paginate .paginate_button:hover {
             background: #404040 !important;
             border-color: #5a9fd4 !important;
             color: #ffffff !important;
+            transform: translateY(-2px);
         }
         
         .dataTables_paginate .paginate_button.current {
             background: #5a9fd4 !important;
             border-color: #5a9fd4 !important;
             color: #ffffff !important;
+            box-shadow: 0 4px 8px rgba(90, 159, 212, 0.3);
         }
         
         .dataTables_paginate .paginate_button.disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
+        }
+        
+        .dataTables_paginate .paginate_button.disabled:hover {
+            background: #333333 !important;
+            border-color: #444444 !important;
+            transform: none;
         }
         
         /* Loading state */
         .loading {
             text-align: center;
-            padding: 40px;
+            padding: 60px 20px;
             color: #b0b0b0;
+            font-size: 20px;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top-color: #5a9fd4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px 20px;
+            color: #ff6b6b;
             font-size: 18px;
-        }
-        
-        .loading:after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-        
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 12px;
+            border: 2px solid rgba(255, 107, 107, 0.3);
         }
         
         /* Mobile responsiveness */
@@ -168,62 +249,100 @@
                 padding: 10px;
             }
             
+            header {
+                margin-bottom: 20px;
+                padding: 10px;
+            }
+            
             .table-wrapper {
-                padding: 15px;
-                border-radius: 8px;
+                padding: 20px 15px;
+                border-radius: 12px;
             }
             
             table.dataTable thead th,
             table.dataTable tbody td {
-                padding: 8px;
-                font-size: 14px;
+                padding: 10px 8px;
+                font-size: 13px;
+            }
+            
+            table.dataTable tbody td .colored-cell {
+                min-width: 60px;
+                font-size: 13px;
+                padding: 4px 8px;
             }
             
             .dataTables_filter input,
             .dataTables_length select {
                 font-size: 14px;
+                padding: 8px 12px;
+            }
+            
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .dataTables_filter {
+                float: none;
+                text-align: left;
+                margin-bottom: 15px;
+            }
+            
+            .dataTables_paginate {
+                float: none;
+                text-align: center;
+            }
+            
+            .dataTables_paginate .paginate_button {
+                padding: 6px 12px;
+                margin: 2px;
+                font-size: 13px;
             }
         }
         
-        /* Color contrast helper for dark backgrounds */
-        table.dataTable tbody td[style*="background"] {
-            position: relative;
+        /* Scrollbar styling */
+        .table-wrapper::-webkit-scrollbar {
+            height: 10px;
+        }
+        
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+        
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #5a9fd4;
+            border-radius: 10px;
+        }
+        
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #4a8fc4;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Excel Data Viewer</h1>
+        <header>
+            <h1>📦 Crate Contents</h1>
+            <p class="subtitle">Interactive inventory viewer with category colors</p>
+        </header>
+        
         <div class="table-wrapper">
-            <div id="loading" class="loading">Loading your data</div>
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <div>Loading your data...</div>
+            </div>
+            <div id="error" class="error" style="display:none;"></div>
             <table id="excelTable" class="display" style="display:none;"></table>
         </div>
     </div>
 
     <script>
-        // Function to convert Excel color to RGB
-        function argbToRgba(argb) {
+        // Function to convert Excel ARGB color to hex
+        function argbToHex(argb) {
             if (!argb) return null;
             
-            // Handle indexed colors (common in Excel)
-            const indexedColors = {
-                1: '#000000', 2: '#FFFFFF', 3: '#FF0000', 4: '#00FF00', 5: '#0000FF',
-                6: '#FFFF00', 7: '#FF00FF', 8: '#00FFFF', 9: '#800000', 10: '#008000'
-            };
-            
-            if (typeof argb === 'number') {
-                return indexedColors[argb] || null;
-            }
-            
+            // Handle string format (FFRRGGBB)
             if (typeof argb === 'string') {
-                // Remove 'FF' alpha channel if present
-                const hex = argb.replace(/^FF/, '');
+                // Remove alpha channel (first 2 chars)
+                const hex = argb.length === 8 ? argb.substring(2) : argb;
                 return `#${hex}`;
-            }
-            
-            if (argb.rgb) {
-                const rgb = argb.rgb.replace(/^FF/, '');
-                return `#${rgb}`;
             }
             
             return null;
@@ -241,64 +360,82 @@
             const g = parseInt(color.substr(2, 2), 16);
             const b = parseInt(color.substr(4, 2), 16);
             
-            // Calculate luminance
+            // Calculate luminance (perceived brightness)
             const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
             
             // Return black for light backgrounds, white for dark
             return luminance > 0.5 ? '#000000' : '#ffffff';
         }
 
-        // Load and parse Excel file
-        fetch('data.xlsx')  // Change this to your Excel filename
-            .then(res => res.arrayBuffer())
+        // Load and parse Excel file - specifically the "Crate" sheet
+        fetch('data.xlsx')
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Could not load data.xlsx. Make sure the file is in the same directory.');
+                }
+                return res.arrayBuffer();
+            })
             .then(data => {
-                const workbook = XLSX.read(data, { cellStyles: true });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const workbook = XLSX.read(data, { cellStyles: true, cellNF: true });
+                
+                // Check if "Crate" sheet exists
+                if (!workbook.SheetNames.includes('Crate')) {
+                    throw new Error('Sheet "Crate" not found in the Excel file.');
+                }
+                
+                const crateSheet = workbook.Sheets['Crate'];
                 
                 // Get range
-                const range = XLSX.utils.decode_range(firstSheet['!ref']);
+                const range = XLSX.utils.decode_range(crateSheet['!ref']);
                 
                 // Extract headers
                 const headers = [];
                 for (let col = range.s.c; col <= range.e.c; col++) {
                     const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: col });
-                    const cell = firstSheet[cellAddress];
-                    headers.push(cell ? cell.v : `Column ${col + 1}`);
+                    const cell = crateSheet[cellAddress];
+                    if (cell && cell.v) {
+                        headers.push(cell.v);
+                    }
+                }
+                
+                // Remove empty trailing columns from headers
+                while (headers.length > 0 && !headers[headers.length - 1]) {
+                    headers.pop();
                 }
                 
                 // Extract data with styles
                 const tableData = [];
                 for (let row = range.s.r + 1; row <= range.e.r; row++) {
                     const rowData = {};
-                    for (let col = range.s.c; col <= range.e.c; col++) {
+                    let hasData = false;
+                    
+                    for (let col = 0; col < headers.length; col++) {
                         const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                        const cell = firstSheet[cellAddress];
+                        const cell = crateSheet[cellAddress];
                         const header = headers[col];
                         
-                        if (cell) {
+                        if (cell && cell.v !== undefined && cell.v !== null) {
+                            hasData = true;
                             let cellValue = cell.v;
                             let bgColor = null;
                             let textColor = null;
                             
-                            // Try to extract colors
-                            if (cell.s) {
-                                if (cell.s.fgColor) {
-                                    bgColor = argbToRgba(cell.s.fgColor);
-                                }
-                                if (cell.s.patternType && cell.s.bgColor) {
-                                    bgColor = argbToRgba(cell.s.bgColor);
-                                }
-                                if (cell.s.font && cell.s.font.color) {
-                                    textColor = argbToRgba(cell.s.font.color);
-                                }
+                            // Extract background color
+                            if (cell.s && cell.s.fgColor && cell.s.fgColor.rgb) {
+                                bgColor = argbToHex(cell.s.fgColor.rgb);
                             }
                             
-                            // Create value with color data
-                            if (bgColor || textColor) {
+                            // Extract text color
+                            if (cell.s && cell.s.font && cell.s.font.color && cell.s.font.color.rgb) {
+                                textColor = argbToHex(cell.s.font.color.rgb);
+                            }
+                            
+                            // Create cell data object with styling
+                            if (bgColor) {
                                 rowData[header] = {
                                     value: cellValue,
                                     bgColor: bgColor,
-                                    textColor: textColor || (bgColor ? getContrastColor(bgColor) : '#e0e0e0')
+                                    textColor: textColor || getContrastColor(bgColor)
                                 };
                             } else {
                                 rowData[header] = cellValue;
@@ -307,52 +444,61 @@
                             rowData[header] = '';
                         }
                     }
-                    tableData.push(rowData);
+                    
+                    // Only add rows that have data
+                    if (hasData) {
+                        tableData.push(rowData);
+                    }
                 }
                 
-                // Initialize DataTable
-                $('#loading').hide();
-                $('#excelTable').show();
+                // Hide loading, show table
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('excelTable').style.display = 'table';
                 
+                // Initialize DataTable
                 $('#excelTable').DataTable({
                     data: tableData,
                     columns: headers.map(header => ({
                         title: header,
                         data: header,
                         render: function(data, type, row) {
-                            if (type === 'display' && data && typeof data === 'object' && data.value !== undefined) {
-                                let style = '';
-                                if (data.bgColor) {
-                                    style += `background-color: ${data.bgColor}; `;
+                            // For display, render with colors
+                            if (type === 'display') {
+                                if (data && typeof data === 'object' && data.value !== undefined) {
+                                    const style = `background-color: ${data.bgColor}; color: ${data.textColor};`;
+                                    return `<span class="colored-cell" style="${style}">${data.value}</span>`;
                                 }
-                                if (data.textColor) {
-                                    style += `color: ${data.textColor}; `;
-                                }
-                                return `<span style="${style}">${data.value}</span>`;
+                                return data || '';
                             }
-                            return data && typeof data === 'object' ? data.value : data;
+                            // For sorting and filtering, use the plain value
+                            return data && typeof data === 'object' ? data.value : (data || '');
                         }
                     })),
                     pageLength: 25,
                     responsive: true,
+                    order: [[0, 'asc']], // Sort by first column by default
                     language: {
-                        search: "Search:",
-                        lengthMenu: "Show _MENU_ entries",
-                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                        infoEmpty: "No entries available",
-                        infoFiltered: "(filtered from _MAX_ total entries)",
+                        search: "🔍 Search:",
+                        lengthMenu: "Show _MENU_ entries per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ items",
+                        infoEmpty: "No items available",
+                        infoFiltered: "(filtered from _MAX_ total items)",
                         paginate: {
-                            first: "First",
-                            last: "Last",
-                            next: "Next",
-                            previous: "Previous"
-                        }
+                            first: "⏮ First",
+                            last: "Last ⏭",
+                            next: "Next ▶",
+                            previous: "◀ Previous"
+                        },
+                        zeroRecords: "No matching items found"
                     }
                 });
             })
             .catch(error => {
                 console.error('Error loading Excel file:', error);
-                $('#loading').html('❌ Error loading file. Make sure "data.xlsx" is in the same directory.');
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = `❌ ${error.message}`;
+                errorDiv.style.display = 'block';
             });
     </script>
 </body>
