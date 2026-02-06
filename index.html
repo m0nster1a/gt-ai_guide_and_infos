@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
         * {
@@ -48,6 +48,27 @@
             font-size: clamp(14px, 3vw, 18px);
             font-weight: 300;
         }
+
+        .sheet-selector {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .sheet-selector select {
+            background: #333333;
+            border: 2px solid #5a9fd4;
+            color: #e0e0e0;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .sheet-selector select:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(90, 159, 212, 0.3);
+        }
         
         .table-wrapper {
             background: rgba(42, 42, 42, 0.95);
@@ -58,7 +79,6 @@
             overflow-x: auto;
         }
         
-        /* DataTables dark theme overrides */
         table.dataTable {
             width: 100% !important;
             background: transparent;
@@ -94,7 +114,6 @@
             transform: scale(1.01);
         }
         
-        /* Colored cells with better styling */
         table.dataTable tbody td .colored-cell {
             padding: 6px 12px;
             border-radius: 6px;
@@ -105,7 +124,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
-        /* DataTables controls */
         .dataTables_wrapper {
             color: #e0e0e0;
         }
@@ -210,7 +228,6 @@
             transform: none;
         }
         
-        /* Loading state */
         .loading {
             text-align: center;
             padding: 60px 20px;
@@ -243,7 +260,6 @@
             border: 2px solid rgba(255, 107, 107, 0.3);
         }
         
-        /* Mobile responsiveness */
         @media screen and (max-width: 768px) {
             body {
                 padding: 10px;
@@ -294,9 +310,13 @@
                 margin: 2px;
                 font-size: 13px;
             }
+
+            .sheet-selector select {
+                width: 100%;
+                max-width: 300px;
+            }
         }
         
-        /* Scrollbar styling */
         .table-wrapper::-webkit-scrollbar {
             height: 10px;
         }
@@ -319,9 +339,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>📦 Crate Contents</h1>
-            <p class="subtitle">Interactive inventory viewer with category colors</p>
+            <h1>📦 Excel Data Viewer</h1>
+            <p class="subtitle">Interactive inventory viewer with auto-detected colors</p>
         </header>
+
+        <div class="sheet-selector" id="sheetSelector" style="display:none;">
+            <label for="sheetSelect" style="color: #b0b0b0; margin-right: 10px; font-weight: 500;">Select Sheet:</label>
+            <select id="sheetSelect"></select>
+        </div>
         
         <div class="table-wrapper">
             <div id="loading" class="loading">
@@ -334,40 +359,193 @@
     </div>
 
     <script>
-        // Function to convert Excel ARGB color to hex
-        function argbToHex(argb) {
-            if (!argb) return null;
+        let workbookData = null;
+        let currentTable = null;
+
+        // Pre-defined color mapping for categories (fallback + known categories)
+        const colorMap = {
+            'Craft': '#AE44FC',
+            'Cybernetic': '#769500',
+            'Decoration': '#2C9C80',
+            'Electronic': '#C2B100',
+            'Food': '#AE6200',
+            'Material': '#8771FF',
+            'Object': '#0AFFB5',
+            'Part': '#C78BFF',
+            'Power': '#AA3DDA',
+            'Tool': '#FF57DB',
+            'Weapon': '#D54444',
+            'Bed': '#CCE4E8'
+        };
+
+        function getContrastColor(bgColor) {
+            if (!bgColor) return '#e0e0e0';
             
-            // Handle string format (FFRRGGBB)
-            if (typeof argb === 'string') {
-                // Remove alpha channel (first 2 chars)
-                const hex = argb.length === 8 ? argb.substring(2) : argb;
-                return `#${hex}`;
+            const color = bgColor.replace('#', '');
+            const r = parseInt(color.substr(0, 2), 16);
+            const g = parseInt(color.substr(2, 2), 16);
+            const b = parseInt(color.substr(4, 2), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            return luminance > 0.5 ? '#000000' : '#ffffff';
+        }
+
+        function extractCellColor(cell) {
+            if (!cell || !cell.s) return null;
+            
+            if (cell.s.fgColor && cell.s.fgColor.rgb) {
+                let color = cell.s.fgColor.rgb;
+                if (color.length === 8 && color.substring(0, 2).toLowerCase() === 'ff') {
+                    color = color.substring(2);
+                }
+                if (color !== '000000') {  // Ignore black/default
+                    return '#' + color.toUpperCase();
+                }
             }
             
             return null;
         }
-        
-        // Function to determine if text should be light or dark based on background
-        function getContrastColor(bgColor) {
-            if (!bgColor) return '#e0e0e0';
+
+        function loadSheet(sheetName) {
+            if (!workbookData) return;
+
+            const sheet = workbookData.Sheets[sheetName];
+            if (!sheet) {
+                showError(`Sheet "${sheetName}" not found.`);
+                return;
+            }
+
+            if (currentTable) {
+                currentTable.destroy();
+                $('#excelTable').empty();
+            }
+
+            const range = XLSX.utils.decode_range(sheet['!ref']);
             
-            // Remove # if present
-            const color = bgColor.replace('#', '');
-            
-            // Convert to RGB
-            const r = parseInt(color.substr(0, 2), 16);
-            const g = parseInt(color.substr(2, 2), 16);
-            const b = parseInt(color.substr(4, 2), 16);
-            
-            // Calculate luminance (perceived brightness)
-            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-            
-            // Return black for light backgrounds, white for dark
-            return luminance > 0.5 ? '#000000' : '#ffffff';
+            const headers = [];
+            for (let col = range.s.c; col <= range.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: col });
+                const cell = sheet[cellAddress];
+                if (cell && cell.v) {
+                    headers.push(cell.v.toString());
+                }
+            }
+
+            while (headers.length > 0 && !headers[headers.length - 1]) {
+                headers.pop();
+            }
+
+            if (headers.length === 0) {
+                showError('No headers found in the sheet.');
+                return;
+            }
+
+            // Auto-detect colors from Excel
+            const detectedColors = {};
+            for (let row = range.s.r + 1; row <= range.e.r; row++) {
+                for (let col = 0; col < headers.length; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                    const cell = sheet[cellAddress];
+                    
+                    if (cell && cell.v) {
+                        const color = extractCellColor(cell);
+                        if (color) {
+                            const value = cell.v.toString();
+                            if (!detectedColors[value]) {
+                                detectedColors[value] = color;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Merge: Excel colors override predefined, new Excel colors are added
+            const finalColorMap = { ...colorMap, ...detectedColors };
+
+            const tableData = [];
+            for (let row = range.s.r + 1; row <= range.e.r; row++) {
+                const rowData = {};
+                let hasData = false;
+                
+                for (let col = 0; col < headers.length; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                    const cell = sheet[cellAddress];
+                    const header = headers[col];
+                    
+                    if (cell && cell.v !== undefined && cell.v !== null) {
+                        hasData = true;
+                        const cellValue = cell.v.toString();
+                        
+                        // Use color map OR extract directly from cell
+                        const bgColor = finalColorMap[cellValue] || extractCellColor(cell);
+                        
+                        if (bgColor) {
+                            rowData[header] = {
+                                value: cellValue,
+                                bgColor: bgColor,
+                                textColor: getContrastColor(bgColor)
+                            };
+                        } else {
+                            rowData[header] = cellValue;
+                        }
+                    } else {
+                        rowData[header] = '';
+                    }
+                }
+                
+                if (hasData) {
+                    tableData.push(rowData);
+                }
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('excelTable').style.display = 'table';
+
+            currentTable = $('#excelTable').DataTable({
+                data: tableData,
+                columns: headers.map(header => ({
+                    title: header,
+                    data: header,
+                    render: function(data, type, row) {
+                        if (type === 'display') {
+                            if (data && typeof data === 'object' && data.value !== undefined) {
+                                const style = `background-color: ${data.bgColor}; color: ${data.textColor};`;
+                                return `<span class="colored-cell" style="${style}">${data.value}</span>`;
+                            }
+                            return data || '';
+                        }
+                        return data && typeof data === 'object' ? data.value : (data || '');
+                    }
+                })),
+                pageLength: 25,
+                responsive: true,
+                order: [[0, 'asc']],
+                language: {
+                    search: "🔍 Search:",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ items",
+                    infoEmpty: "No items available",
+                    infoFiltered: "(filtered from _MAX_ total items)",
+                    paginate: {
+                        first: "⏮ First",
+                        last: "Last ⏭",
+                        next: "Next ▶",
+                        previous: "◀ Previous"
+                    },
+                    zeroRecords: "No matching items found"
+                }
+            });
         }
 
-        // Load and parse Excel file - specifically the "Crate" sheet
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = `❌ ${message}`;
+            errorDiv.style.display = 'block';
+        }
+
+        // Load Excel file
         fetch('data.xlsx')
             .then(res => {
                 if (!res.ok) {
@@ -376,129 +554,35 @@
                 return res.arrayBuffer();
             })
             .then(data => {
-                const workbook = XLSX.read(data, { cellStyles: true, cellNF: true });
+                workbookData = XLSX.read(data, { cellStyles: true, cellNF: true });
                 
-                // Check if "Crate" sheet exists
-                if (!workbook.SheetNames.includes('Crate')) {
-                    throw new Error('Sheet "Crate" not found in the Excel file.');
-                }
-                
-                const crateSheet = workbook.Sheets['Crate'];
-                
-                // Get range
-                const range = XLSX.utils.decode_range(crateSheet['!ref']);
-                
-                // Extract headers
-                const headers = [];
-                for (let col = range.s.c; col <= range.e.c; col++) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: col });
-                    const cell = crateSheet[cellAddress];
-                    if (cell && cell.v) {
-                        headers.push(cell.v);
-                    }
-                }
-                
-                // Remove empty trailing columns from headers
-                while (headers.length > 0 && !headers[headers.length - 1]) {
-                    headers.pop();
-                }
-                
-                // Extract data with styles
-                const tableData = [];
-                for (let row = range.s.r + 1; row <= range.e.r; row++) {
-                    const rowData = {};
-                    let hasData = false;
-                    
-                    for (let col = 0; col < headers.length; col++) {
-                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                        const cell = crateSheet[cellAddress];
-                        const header = headers[col];
-                        
-                        if (cell && cell.v !== undefined && cell.v !== null) {
-                            hasData = true;
-                            let cellValue = cell.v;
-                            let bgColor = null;
-                            let textColor = null;
-                            
-                            // Extract background color
-                            if (cell.s && cell.s.fgColor && cell.s.fgColor.rgb) {
-                                bgColor = argbToHex(cell.s.fgColor.rgb);
-                            }
-                            
-                            // Extract text color
-                            if (cell.s && cell.s.font && cell.s.font.color && cell.s.font.color.rgb) {
-                                textColor = argbToHex(cell.s.font.color.rgb);
-                            }
-                            
-                            // Create cell data object with styling
-                            if (bgColor) {
-                                rowData[header] = {
-                                    value: cellValue,
-                                    bgColor: bgColor,
-                                    textColor: textColor || getContrastColor(bgColor)
-                                };
-                            } else {
-                                rowData[header] = cellValue;
-                            }
-                        } else {
-                            rowData[header] = '';
+                // Show sheet selector if multiple sheets
+                if (workbookData.SheetNames.length > 1) {
+                    const selector = document.getElementById('sheetSelect');
+                    workbookData.SheetNames.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        if (name === 'Crate') {
+                            option.selected = true;
                         }
-                    }
+                        selector.appendChild(option);
+                    });
                     
-                    // Only add rows that have data
-                    if (hasData) {
-                        tableData.push(rowData);
-                    }
+                    document.getElementById('sheetSelector').style.display = 'block';
+                    
+                    selector.addEventListener('change', function() {
+                        loadSheet(this.value);
+                    });
                 }
                 
-                // Hide loading, show table
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('excelTable').style.display = 'table';
-                
-                // Initialize DataTable
-                $('#excelTable').DataTable({
-                    data: tableData,
-                    columns: headers.map(header => ({
-                        title: header,
-                        data: header,
-                        render: function(data, type, row) {
-                            // For display, render with colors
-                            if (type === 'display') {
-                                if (data && typeof data === 'object' && data.value !== undefined) {
-                                    const style = `background-color: ${data.bgColor}; color: ${data.textColor};`;
-                                    return `<span class="colored-cell" style="${style}">${data.value}</span>`;
-                                }
-                                return data || '';
-                            }
-                            // For sorting and filtering, use the plain value
-                            return data && typeof data === 'object' ? data.value : (data || '');
-                        }
-                    })),
-                    pageLength: 25,
-                    responsive: true,
-                    order: [[0, 'asc']], // Sort by first column by default
-                    language: {
-                        search: "🔍 Search:",
-                        lengthMenu: "Show _MENU_ entries per page",
-                        info: "Showing _START_ to _END_ of _TOTAL_ items",
-                        infoEmpty: "No items available",
-                        infoFiltered: "(filtered from _MAX_ total items)",
-                        paginate: {
-                            first: "⏮ First",
-                            last: "Last ⏭",
-                            next: "Next ▶",
-                            previous: "◀ Previous"
-                        },
-                        zeroRecords: "No matching items found"
-                    }
-                });
+                // Load Crate sheet (or first sheet if Crate doesn't exist)
+                const defaultSheet = workbookData.SheetNames.includes('Crate') ? 'Crate' : workbookData.SheetNames[0];
+                loadSheet(defaultSheet);
             })
             .catch(error => {
                 console.error('Error loading Excel file:', error);
-                document.getElementById('loading').style.display = 'none';
-                const errorDiv = document.getElementById('error');
-                errorDiv.textContent = `❌ ${error.message}`;
-                errorDiv.style.display = 'block';
+                showError(error.message);
             });
     </script>
 </body>
