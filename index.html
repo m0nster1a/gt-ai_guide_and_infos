@@ -619,16 +619,6 @@
             
             crateName.textContent = sheetName;
             crateDesc.textContent = description;
-            
-            // Update selector crate image
-            const selectorImg = document.getElementById('selectorCrateImage');
-            selectorImg.src = imagePath;
-            selectorImg.onerror = function() {
-                this.style.display = 'none';
-            };
-            selectorImg.onload = function() {
-                this.style.display = 'block';
-            };
         }
 
         // Pre-defined color mapping for categories (fallback + known categories)
